@@ -1,8 +1,8 @@
--- Payment System Schema (v3)
+-- Payment System Schema (v3) - Schema Qualified
 
-CREATE TABLE IF NOT EXISTS payment_orders (
+CREATE TABLE IF NOT EXISTS public.payment_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  checkout_id UUID NOT NULL REFERENCES checkouts(id),
+  checkout_id UUID NOT NULL REFERENCES public.checkouts(id),
   purpose TEXT NOT NULL CHECK (purpose IN ('INITIAL', 'RECOVERY')),
   rzp_order_id TEXT UNIQUE NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('CREATING', 'CREATED', 'PAID', 'CANCELLED')),
@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   UNIQUE(checkout_id, purpose)
 );
 
-CREATE TABLE IF NOT EXISTS payment_attempts (
+CREATE TABLE IF NOT EXISTS public.payment_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_order_id UUID NOT NULL REFERENCES payment_orders(id),
+  payment_order_id UUID NOT NULL REFERENCES public.payment_orders(id),
   rzp_payment_id TEXT UNIQUE NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('PENDING', 'CAPTURED', 'FAILED')),
   verified_amount INTEGER NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS payment_attempts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS razorpay_webhook_events (
+CREATE TABLE IF NOT EXISTS public.razorpay_webhook_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   rzp_event_id TEXT UNIQUE NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('PENDING', 'PROCESSING', 'PROCESSED', 'FAILED')),
@@ -33,23 +33,23 @@ CREATE TABLE IF NOT EXISTS razorpay_webhook_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS payment_audit_events (
+CREATE TABLE IF NOT EXISTS public.payment_audit_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_order_id UUID NOT NULL REFERENCES payment_orders(id),
+  payment_order_id UUID NOT NULL REFERENCES public.payment_orders(id),
   event_type TEXT NOT NULL,
   payload JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- RLS: Deny-by-default
-ALTER TABLE payment_orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Deny all" ON payment_orders USING (false);
-ALTER TABLE payment_attempts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Deny all" ON payment_attempts USING (false);
-ALTER TABLE razorpay_webhook_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Deny all" ON razorpay_webhook_events USING (false);
-ALTER TABLE payment_audit_events ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Deny all" ON payment_audit_events USING (false);
+ALTER TABLE public.payment_orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Deny all" ON public.payment_orders USING (false);
+ALTER TABLE public.payment_attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Deny all" ON public.payment_attempts USING (false);
+ALTER TABLE public.razorpay_webhook_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Deny all" ON public.razorpay_webhook_events USING (false);
+ALTER TABLE public.payment_audit_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Deny all" ON public.payment_audit_events USING (false);
 
 -- RPCs
 CREATE OR REPLACE FUNCTION public.get_or_create_payment_order(
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION public.get_or_create_payment_order(
 ) RETURNS TABLE(order_id UUID, rzp_order_id TEXT, status TEXT, claimed_by_caller BOOLEAN)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE
-    v_order payment_orders;
+    v_order public.payment_orders%ROWTYPE;
 BEGIN
     INSERT INTO public.payment_orders (checkout_id, purpose, amount_paise, currency, idempotency_key, rzp_order_id, status)
     VALUES (p_checkout_id, p_purpose, p_amount_paise, p_currency, p_idempotency_key, 'temp_' || gen_random_uuid()::text, 'CREATING')
@@ -118,7 +118,7 @@ CREATE OR REPLACE FUNCTION public.record_failed_attempt(
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
     INSERT INTO public.payment_attempts (payment_order_id, rzp_payment_id, status, verified_amount)
-    VALUES (p_order_id, p_rzp_payment_id, 'FAILED', 0); -- Amount not verified
+    VALUES (p_order_id, p_rzp_payment_id, 'FAILED', 0);
     UPDATE public.razorpay_webhook_events SET status = 'PROCESSED', processed_at = NOW() WHERE rzp_event_id = p_event_id;
 END;
 $$;

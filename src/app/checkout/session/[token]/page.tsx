@@ -1,4 +1,5 @@
-import crypto from 'crypto';
+import { hashToken } from '@/lib/token';
+import { PaymentButton } from '@/components/PaymentButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getSupabaseAdmin } from '@/lib/supabase';
@@ -96,7 +97,7 @@ export default async function CheckoutSessionPage({ params }: PageProps) {
   if (!token) return notFound();
 
   // 1. Hash the incoming URL token — never trust the raw value
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const tokenHash = hashToken(token);
   const dbAdmin = getSupabaseAdmin();
   const now = new Date().toISOString();
 
@@ -236,12 +237,8 @@ export default async function CheckoutSessionPage({ params }: PageProps) {
 
               <div className="mt-8 space-y-3">
                 {/* Phase 2 will wire this button to Razorpay order creation */}
-                <button
-                  type="button"
-                  className="w-full h-12 inline-flex items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 font-bold transition-all hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.98]"
-                >
-                  Proceed to Payment
-                </button>
+                {/* Phase 2 wiring implemented */}
+                <PaymentButton token={token} />
                 <Link
                   href="/"
                   className="w-full h-12 inline-flex items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
