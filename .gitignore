@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# antigravity backups
+backup-antigravity.bat
+restore-antigravity.bat
