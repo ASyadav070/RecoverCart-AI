@@ -43,3 +43,6 @@ next-env.d.ts
 # antigravity backups
 backup-antigravity.bat
 restore-antigravity.bat
+
+# graphify-out
+graphify-out/*
