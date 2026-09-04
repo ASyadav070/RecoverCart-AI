@@ -236,16 +236,26 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Capture processing failed' }, { status: 500 });
         }
 
-        if (captureResult.success && captureResult.already_paid) {
-          return new NextResponse(null, { status: 200 });
-        }
-
         if (!captureResult.success) {
           await dbAdmin
             .from('razorpay_webhook_events')
             .update({ status: 'FAILED', processed_at: new Date().toISOString() })
             .eq('rzp_event_id', eventId);
           return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
+        }
+
+        // 7. Call confirm_recovery_payment (idempotent, INITIAL orders ignored)
+        const { error: recoveryError } = await dbAdmin.rpc('confirm_recovery_payment', {
+          p_rzp_order_id: rzpOrderId!,
+        });
+
+        if (recoveryError) {
+          console.error('Confirm recovery payment failed', { stage: 'RECOVERY', code: recoveryError.code, message: recoveryError.message });
+          await dbAdmin
+            .from('razorpay_webhook_events')
+            .update({ status: 'FAILED', processed_at: new Date().toISOString() })
+            .eq('rzp_event_id', eventId);
+          return NextResponse.json({ error: 'Recovery processing failed' }, { status: 500 });
         }
 
         return new NextResponse(null, { status: 200 });
