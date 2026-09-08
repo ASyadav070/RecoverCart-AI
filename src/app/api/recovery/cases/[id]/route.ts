@@ -108,6 +108,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       attempts: attempts
     },
     audit: audit || [],
-    outreach: outreach || null
+    outreach: outreach || null,
   });
 }

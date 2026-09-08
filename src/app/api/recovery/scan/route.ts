@@ -34,6 +34,8 @@ export async function POST(request: Request) {
     );
   }
 
+  // Trigger lifecycle reconciliation
+  await admin.rpc('reconcile_recovery_lifecycle');
 
   return NextResponse.json({ success: true, count: data?.length || 0 });
 }

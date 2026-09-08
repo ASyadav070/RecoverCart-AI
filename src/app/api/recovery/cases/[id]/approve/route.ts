@@ -14,6 +14,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Fetch case to check eligibility
+  const { data: recoveryCase, error: caseErr } = await admin
+    .from('recovery_cases')
+    .select('id, checkout_id, created_at, status')
+    .eq('id', recoveryCaseId)
+    .single();
+
+  if (caseErr) return NextResponse.json({ error: 'Case not found' }, { status: 404 });
+
+
   const { error: rpcErr } = await admin.rpc('approve_recovery_proposal', { p_case_id: recoveryCaseId });
 
   if (rpcErr) {

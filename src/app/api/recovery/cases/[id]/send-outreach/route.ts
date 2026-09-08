@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: recoveryCase, error: caseError } = await admin
     .from('recovery_cases')
     .select(`
-      id, checkout_id, status,
+      id, checkout_id, status, created_at,
       recovery_proposals (id, proposed_channel, proposed_message)
     `)
     .eq('id', id)
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // If we reach here, it's SENT but no outreach row found (unexpected)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+
 
   if (recoveryCase.status !== 'APPROVED') {
     return NextResponse.json({ error: 'Invalid state for outreach' }, { status: 409 });

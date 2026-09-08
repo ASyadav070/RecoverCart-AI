@@ -363,15 +363,57 @@ export default function MerchantCaseDetailPage() {
                 </div>
               )}
 
+                  <button
+                    onClick={async () => {
+                      setActionState('regenerating');
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const res = await fetch(`/api/recovery/cases/${id}/generate-strategy`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                        });
+                        if (!res.ok) throw new Error('Failed to generate strategy');
+                        await fetchCaseDetail();
+                      } catch {
+                        setActionError('Failed to generate strategy');
+                      } finally {
+                        setActionState('idle');
+                      }
+                    }}
+                    disabled={actionState !== 'idle'}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    {actionState === 'regenerating' ? 'Generating Strategy...' : 'Generate Strategy'}
+                  </button>
+
               {data.case.status === 'REJECTED' && (
                 <div className="text-red-400 text-sm py-3 px-4 border border-red-900/50 bg-red-950/30 rounded-lg text-center">
                   <div className="font-semibold mb-1">Current Status: REJECTED</div>
-                  <div className="text-red-300 font-normal">The previous proposal was rejected. Automatic regeneration did not complete.</div>
+                  <div className="text-red-300 font-normal">The previous proposal was rejected.</div>
                 </div>
               )}
 
-              {(!['ANALYSING', 'AWAITING_APPROVAL', 'APPROVED', 'REJECTED'].includes(data.case.status)) && (
-                <div className="text-zinc-500 text-sm py-2">No review actions available for current status.</div>
+              {data.case.status === 'UNRECOVERED' && (
+                <div className="p-4 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-400">
+                    <p className="font-semibold text-zinc-200">Recovery attempt ended without payment</p>
+                    <p className="text-sm">The recovery period ended before a verified payment was completed.</p>
+                </div>
+              )}
+              {data.case.status === 'STOPPED' && (
+                <div className="p-4 bg-zinc-950 border border-zinc-700 rounded-lg text-zinc-400">
+                    <p className="font-semibold text-zinc-200">Recovery stopped</p>
+                    <p className="text-sm">This checkout was completed outside the attributed recovery flow, so no further recovery action is needed.</p>
+                </div>
+              )}
+              {data.case.status === 'RECOVERED' && (
+                <div className="p-4 bg-green-950/20 border border-green-900/50 rounded-lg text-green-400">
+                    <p className="font-semibold text-green-300">Revenue successfully recovered</p>
+                </div>
+              )}
+              {data.case.status === 'ESCALATED' && (
+                <div className="p-4 bg-orange-950/20 border border-orange-900/50 rounded-lg text-orange-400">
+                    <p className="font-semibold text-orange-300">Escalated for manual review</p>
+                </div>
               )}
             </section>
 

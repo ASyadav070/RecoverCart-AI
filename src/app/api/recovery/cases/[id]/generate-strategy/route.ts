@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: recoveryCase, error: caseError } = await admin
     .from('recovery_cases')
     .select(`
-      id, status, revenue_at_risk_paise, checkout_id,
+      id, status, revenue_at_risk_paise, checkout_id, created_at,
       checkouts (
         id, preferred_channel, consent_given, total_amount_paise,
         checkout_items (product_id, product_name_snapshot, quantity, unit_price_paise_snapshot, line_total_paise),
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (caseError) return NextResponse.json({ error: 'Database error' }, { status: 500 });
   if (!recoveryCase) return NextResponse.json({ error: 'Recovery case not found' }, { status: 404 });
+  
   
   const checkoutRelation = recoveryCase.checkouts;
   const checkout = Array.isArray(checkoutRelation) ? checkoutRelation[0] : checkoutRelation;
@@ -163,6 +164,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
       gemini_metadata: { model: proposal.model, fallback_attempt: proposal.attempt }
     };
+
 
     const { error: finalizeErr } = await admin.rpc('finalize_recovery_generation', {
       p_case_id: recoveryCaseId,
