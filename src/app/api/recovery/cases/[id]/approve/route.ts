@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Fetch case to check eligibility
-  const { data: recoveryCase, error: caseErr } = await admin
+  const { error: caseErr } = await admin
     .from('recovery_cases')
     .select('id, checkout_id, created_at, status')
     .eq('id', recoveryCaseId)
